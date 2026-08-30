@@ -1,73 +1,250 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VEARO 0.4</title>
-<style>
-body{background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;margin:0;padding:10px}
-h1{color:#39FF14;margin:10px 0}
-#info{display:flex;justify-content:space-around;margin:10px;font-size:18px}
-#game{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:350px;margin:20px auto}
-.card{aspect-ratio:1;background:#222;border:2px solid #39FF14;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;transition:0.3s}
-.card.flipped{background:#fff;color:#000;transform:rotateY(180deg)}
-.card.matched{background:#39FF14;opacity:0.3;pointer-events:none}
-.shake{animation:shake 0.4s}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-button{background:#39FF14;color:#000;border:none;padding:10px 20px;border-radius:20px;font-weight:bold;margin-top:15px;cursor:pointer}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VEARO 0.5v ONLINE</title>
+  <style>
+    :root{--g:#39FF14;--bg:#080808;--card:#151515}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#fff;font-family:sans-serif}
+   .view{display:none;flex-direction:column;align-items:center;padding:20px;min-height:100vh}
+   .view.active{display:flex}
+    h1{font-size:46px;color:var(--g);margin:15px 0 0;text-shadow:0 0 15px var(--g)}
+   .sub{color:#666;font-size:12px;margin:5px 0 20px}
+   .box{background:var(--card);border:1px solid #222;border-radius:18px;padding:18px;width:100%;max-width:360px}
+   .btn{width:100%;padding:13px;border-radius:12px;border:none;font-weight:bold;margin-top:10px;cursor:pointer}
+   .btn-g{background:var(--g);color:#000}
+   .btn-b{background:#222;color:#fff;border:1px solid #333}
+    #game{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0;width:100%;max-width:360px}
+   .c{aspect-ratio:1;background:#222;border:2px solid #333;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer}
+   .c.flip{background:#fff;color:#000}
+   .c.ok{background:var(--g);opacity:.3;pointer-events:none}
+   .top{width:100%;max-width:360px;display:flex;justify-content:space-between;font-size:13px;color:#888}
+   .trap-item{background:#000;border:1px solid #222;padding:10px;border-radius:10px;margin-top:8px;font-size:12px}
+    input{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#000;color:#fff}
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+      }
+    }
+  </script>
 </head>
 <body>
-<h1>VEARO TRAP 0.4</h1>
-<div id="info"><span>حركات: <b id="moves">0</b></span><span>الوقت: <b id="time">0</b>s</span></div>
-<div id="game"></div>
-<button onclick="startGame()">اعادة اللعب 🔄</button>
-<p style="color:#666;font-size:12px;margin-top:20px">النسخة 0.4 - قلب اللعبة الفوضوي</p>
 
-<script>
-const icons = ['💣','💣','👁️','👁️','🔥','🔥','💀','💀','⚡','⚡','🕳️','🕳️','🧠','🧠','🎭','🎭'];
-let flipped=[], matched=0, moves=0, timer, seconds=0;
-const gameEl = document.getElementById('game');
+  <div id="v-home" class="view active">
+    <h1>VEARO</h1>
+    <p class="sub">0.5v ONLINE - افخاخ عالمية</p>
+    <div class="box">
+      <button class="btn btn-g" onclick="playRandom()">العب الآن ▶</button>
+      <button class="btn btn-b" onclick="show('create')">+ اصنع فخ عالمي</button>
+      <button class="btn btn-b" onclick="showMyGlobal()">أفخاخي العالمية</button>
+      <button class="btn btn-b" onclick="showLeader()">🔥 الليدربورد</button>
+      <div style="display:flex;justify-content:space-between;color:#444;font-size:11px;margin-top:12px">
+        <span id="acc">...</span><span>● ONLINE</span>
+      </div>
+    </div>
+    <p id="playingTrap" style="color:var(--g);font-size:12px;display:none;margin-top:10px"></p>
+  </div>
 
-function startGame(){
-  gameEl.innerHTML=''; flipped=[]; matched=0; moves=0; seconds=0;
-  document.getElementById('moves').innerText=0;
-  document.getElementById('time').innerText=0;
-  clearInterval(timer);
-  timer = setInterval(()=>{seconds++; document.getElementById('time').innerText=seconds},1000);
-  let shuffled = [...icons].sort(()=>Math.random()-0.5);
-  shuffled.forEach((icon,i)=>{
-    let card = document.createElement('div');
-    card.className='card'; card.dataset.icon=icon; card.dataset.index=i;
-    card.innerHTML='?';
-    card.onclick=()=>flipCard(card);
-    gameEl.appendChild(card);
-  });
-}
-function flipCard(card){
-  if(flipped.length>=2 || card.classList.contains('flipped')) return;
-  card.classList.add('flipped'); card.innerHTML=card.dataset.icon;
-  flipped.push(card);
-  if(flipped.length==2){
-    moves++; document.getElementById('moves').innerText=moves;
-    if(flipped[0].dataset.icon==flipped[1].dataset.icon){
-      setTimeout(()=>{flipped.forEach(c=>c.classList.add('matched')); flipped=[]; matched+=2;
-      // حركة الفوضى: من تلگه زوج، البورد يختلط
-      if(matched<16) setTimeout(()=>{shuffleBoard()},300);
-      if(matched==16){clearInterval(timer); setTimeout(()=>alert(`فزت! بـ ${moves} حركة و ${seconds} ثانية - انت وحش`),300)}
-      },400);
+  <div id="v-game" class="view">
+    <div class="top">
+      <span>حركات: <b id="moves">0</b></span>
+      <span>وقت: <b id="time">0</b></span>
+      <span onclick="show('home')" style="cursor:pointer">✕</span>
+    </div>
+    <div id="game"></div>
+    <div class="box" id="winBox" style="display:none">
+      <h3 style="color:var(--g);margin:0">فزت!</h3>
+      <p id="winText" style="font-size:13px;color:#aaa"></p>
+      <button class="btn btn-g" onclick="saveCurrentAsTrap()">احفظه كفخ عالمي</button>
+      <button class="btn btn-b" onclick="playRandom()">مرة ثانية</button>
+    </div>
+  </div>
+
+  <div id="v-create" class="view">
+    <h2 style="color:var(--g)">اصنع فخ عالمي</h2>
+    <div class="box">
+      <input id="trapName" placeholder="اسم الفخ">
+      <div id="preview" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:15px 0"></div>
+      <button class="btn btn-b" onclick="shufflePreview()">🔀 اخلط</button>
+      <button class="btn btn-g" id="createBtn" onclick="createGlobalTrap()">💾 انشره عالمياً</button>
+      <button class="btn btn-b" onclick="show('home')">رجوع</button>
+      <div id="linkBox" style="display:none;margin-top:12px;background:#000;padding:10px;border-radius:10px;word-break:break-all;font-size:12px"></div>
+    </div>
+  </div>
+
+  <div id="v-my" class="view">
+    <h2>أفخاخي العالمية</h2>
+    <div class="box" id="myList"></div>
+    <button class="btn btn-b" onclick="show('home')" style="max-width:360px">رجوع</button>
+  </div>
+
+  <div id="v-leader" class="view">
+    <h2>🔥 الليدربورد</h2>
+    <div class="box" id="leaderList"></div>
+    <button class="btn btn-b" onclick="show('home')" style="max-width:360px">رجوع</button>
+  </div>
+
+<script type="module">
+  import { initializeApp } from 'firebase/app';
+  import { getFirestore, collection, addDoc, doc, getDoc, updateDoc, increment, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyVDkB3P87MU1BGxQ_4Uo7Z4gTwGcSd-4NQ",
+    authDomain: "vearo-73413.firebaseapp.com",
+    projectId: "vearo-73413",
+    storageBucket: "vearo-73413.firebasestorage.app",
+    messagingSenderId: "255199206319",
+    appId: "1:255199206319:web:bc1468bb7e3cbb06760a9a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  let acc = localStorage.getItem('vearo_acc');
+  if(!acc){
+    acc='VEA-'+Math.random().toString(36).substr(2,3).toUpperCase();
+    localStorage.setItem('vearo_acc',acc)
+  }
+  document.getElementById('acc').innerText=acc;
+
+  const ICONS=['💣','👁️','🔥','💀','⚡','🕳️','🧠','🎭'];
+  let flipped=[], matched=0, moves=0, sec=0, timer=null, currentBoard=[], currentTrapDoc=null, previewBoard=[];
+
+  window.show=(id)=>{
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('v-'+id).classList.add('active');
+    if(id=='create'){
+      previewBoard=[...ICONS,...ICONS].sort(()=>Math.random()-0.5);
+      drawPreview();
+    }
+  };
+
+  window.playRandom=()=>play([...ICONS,...ICONS].sort(()=>Math.random()-0.5), null);
+
+  function play(b, info){
+    currentBoard=b; currentTrapDoc=info; matched=0; moves=0; sec=0; flipped=[];
+    clearInterval(timer);
+    document.getElementById('moves').innerText=0;
+    document.getElementById('time').innerText=0;
+    document.getElementById('winBox').style.display='none';
+    document.getElementById('game').innerHTML='';
+    timer=setInterval(()=>{sec++; document.getElementById('time').innerText=sec},1000);
+    b.forEach(icon=>{
+      let d=document.createElement('div');
+      d.className='c'; d.dataset.icon=icon; d.innerText='?';
+      d.onclick=()=>flip(d);
+      document.getElementById('game').appendChild(d);
+    });
+    show('game');
+    if(info){
+      document.getElementById('playingTrap').innerText=`تلعب فخ: ${info.name} - وقع بيه ${info.plays||0}`;
+      document.getElementById('playingTrap').style.display='block';
+      updateDoc(doc(db,'traps',info.docId),{plays:increment(1)});
     } else {
-      gameEl.classList.add('shake');
-      setTimeout(()=>{gameEl.classList.remove('shake'); flipped.forEach(c=>{c.classList.remove('flipped'); c.innerHTML='?'}); flipped=[]},800);
+      document.getElementById('playingTrap').style.display='none';
     }
   }
-}
-function shuffleBoard(){
-  let cards = [...gameEl.children];
-  cards.sort(()=>Math.random()-0.5);
-  cards.forEach(c=>gameEl.appendChild(c));
-}
-startGame();
+
+  window.flip=(c)=>{
+    if(flipped.length>=2||c.classList.contains('flip'))return;
+    c.classList.add('flip'); c.innerText=c.dataset.icon; flipped.push(c);
+    if(flipped.length==2){
+      moves++; document.getElementById('moves').innerText=moves;
+      if(flipped[0].dataset.icon==flipped[1].dataset.icon){
+        setTimeout(()=>{
+          flipped.forEach(x=>x.classList.add('ok')); flipped=[]; matched+=2;
+          if(matched<16){
+            setTimeout(()=>{
+              let cards=[...document.getElementById('game').children].filter(x=>!x.classList.contains('ok'));
+              cards.sort(()=>Math.random()-0.5);
+              cards.forEach(x=>document.getElementById('game').appendChild(x))
+            },300);
+          }else{
+            clearInterval(timer);
+            document.getElementById('winText').innerText=`بـ ${moves} حركة و ${sec} ث`;
+            document.getElementById('winBox').style.display='block';
+            if(currentTrapDoc) updateDoc(doc(db,'traps',currentTrapDoc.docId),{wins:increment(1)});
+          }
+        },400);
+      } else {
+        setTimeout(()=>{flipped.forEach(x=>{x.classList.remove('flip'); x.innerText='?'}); flipped=[]},700);
+      }
+    }
+  };
+
+  window.drawPreview=()=>{
+    let p=document.getElementById('preview'); p.innerHTML='';
+    previewBoard.forEach(ic=>{
+      let d=document.createElement('div');
+      d.className='c flip'; d.style.fontSize='18px'; d.innerText=ic;
+      p.appendChild(d);
+    });
+  };
+
+  window.shufflePreview=()=>{previewBoard.sort(()=>Math.random()-0.5); drawPreview();};
+
+  window.createGlobalTrap=async()=>{
+    let name=document.getElementById('trapName').value||'فخ';
+    let id='VEA-'+Math.random().toString(36).substr(2,3).toUpperCase();
+    document.getElementById('createBtn').innerText='جاي انشر...';
+    let ref=await addDoc(collection(db,'traps'),{id,name,board:previewBoard,creator:acc,plays:0,wins:0,created:Date.now()});
+    let link=location.origin+location.pathname+'?gid='+ref.id;
+    document.getElementById('linkBox').style.display='block';
+    document.getElementById('linkBox').innerHTML=`اننشر! ✅<br><b>${name} [${id}]</b><br><a href="${link}" style="color:#39FF14">${link}</a>`;
+    document.getElementById('createBtn').innerText='💾 انشره عالمياً';
+  };
+
+  window.saveCurrentAsTrap=()=>{
+    previewBoard=currentBoard;
+    document.getElementById('trapName').value='فخي الصعب';
+    show('create');
+  };
+
+  window.showMyGlobal=async()=>{
+    let q=query(collection(db,'traps'), where('creator','==',acc));
+    let snap=await getDocs(q);
+    let list=document.getElementById('myList');
+    list.innerHTML=snap.empty?'بعدك ما ناشر شي':'';
+    snap.forEach(d=>{
+      let t=d.data();
+      let div=document.createElement('div');
+      div.className='trap-item';
+      div.innerHTML=`<b>${t.name}</b> ${t.id}<br>👁️ ${t.plays}<br><a href="${location.origin+location.pathname+'?gid='+d.id}" style="color:#39FF14">فتح</a>`;
+      list.appendChild(div);
+    });
+    show('my');
+  };
+
+  window.showLeader=async()=>{
+    let q=query(collection(db,'traps'), orderBy('plays','desc'), limit(10));
+    let snap=await getDocs(q);
+    let list=document.getElementById('leaderList'); list.innerHTML='';
+    snap.forEach((d,i)=>{
+      let t=d.data();
+      let div=document.createElement('div');
+      div.className='trap-item';
+      div.innerHTML=`#${i+1} <b>${t.name}</b> [${t.id}]<br>${t.creator} - 👁️ ${t.plays}`;
+      list.appendChild(div);
+    });
+    show('leader');
+  };
+
+  // تحميل فخ من الرابط
+  (async()=>{
+    let p=new URLSearchParams(location.search);
+    if(p.has('gid')){
+      let d=await getDoc(doc(db,'traps',p.get('gid')));
+      if(d.exists()){
+        let t=d.data(); t.docId=d.id; play(t.board, t);
+      }
+    }
+  })();
 </script>
 </body>
 </html>
