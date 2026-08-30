@@ -3,15 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VEARO GAME 0.4</title>
+<title>VEARO 0.4</title>
 <style>
-body{background:#000;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;flex-direction:column;text-align:center}
-h1{color:#39FF14;font-size:40px}
-p{color:#aaa}
+body{background:#0a0a0a;color:#fff;font-family:sans-serif;text-align:center;margin:0;padding:10px}
+h1{color:#39FF14;margin:10px 0}
+#info{display:flex;justify-content:space-around;margin:10px;font-size:18px}
+#game{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:350px;margin:20px auto}
+.card{aspect-ratio:1;background:#222;border:2px solid #39FF14;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer;transition:0.3s}
+.card.flipped{background:#fff;color:#000;transform:rotateY(180deg)}
+.card.matched{background:#39FF14;opacity:0.3;pointer-events:none}
+.shake{animation:shake 0.4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+button{background:#39FF14;color:#000;border:none;padding:10px 20px;border-radius:20px;font-weight:bold;margin-top:15px;cursor:pointer}
 </style>
 </head>
 <body>
-<h1>VEARO GAME</h1>
-<p>النسخة 0.4 قيد التطوير - الموقع شغال 24 ساعة</p>
+<h1>VEARO TRAP 0.4</h1>
+<div id="info"><span>حركات: <b id="moves">0</b></span><span>الوقت: <b id="time">0</b>s</span></div>
+<div id="game"></div>
+<button onclick="startGame()">اعادة اللعب 🔄</button>
+<p style="color:#666;font-size:12px;margin-top:20px">النسخة 0.4 - قلب اللعبة الفوضوي</p>
+
+<script>
+const icons = ['💣','💣','👁️','👁️','🔥','🔥','💀','💀','⚡','⚡','🕳️','🕳️','🧠','🧠','🎭','🎭'];
+let flipped=[], matched=0, moves=0, timer, seconds=0;
+const gameEl = document.getElementById('game');
+
+function startGame(){
+  gameEl.innerHTML=''; flipped=[]; matched=0; moves=0; seconds=0;
+  document.getElementById('moves').innerText=0;
+  document.getElementById('time').innerText=0;
+  clearInterval(timer);
+  timer = setInterval(()=>{seconds++; document.getElementById('time').innerText=seconds},1000);
+  let shuffled = [...icons].sort(()=>Math.random()-0.5);
+  shuffled.forEach((icon,i)=>{
+    let card = document.createElement('div');
+    card.className='card'; card.dataset.icon=icon; card.dataset.index=i;
+    card.innerHTML='?';
+    card.onclick=()=>flipCard(card);
+    gameEl.appendChild(card);
+  });
+}
+function flipCard(card){
+  if(flipped.length>=2 || card.classList.contains('flipped')) return;
+  card.classList.add('flipped'); card.innerHTML=card.dataset.icon;
+  flipped.push(card);
+  if(flipped.length==2){
+    moves++; document.getElementById('moves').innerText=moves;
+    if(flipped[0].dataset.icon==flipped[1].dataset.icon){
+      setTimeout(()=>{flipped.forEach(c=>c.classList.add('matched')); flipped=[]; matched+=2;
+      // حركة الفوضى: من تلگه زوج، البورد يختلط
+      if(matched<16) setTimeout(()=>{shuffleBoard()},300);
+      if(matched==16){clearInterval(timer); setTimeout(()=>alert(`فزت! بـ ${moves} حركة و ${seconds} ثانية - انت وحش`),300)}
+      },400);
+    } else {
+      gameEl.classList.add('shake');
+      setTimeout(()=>{gameEl.classList.remove('shake'); flipped.forEach(c=>{c.classList.remove('flipped'); c.innerHTML='?'}); flipped=[]},800);
+    }
+  }
+}
+function shuffleBoard(){
+  let cards = [...gameEl.children];
+  cards.sort(()=>Math.random()-0.5);
+  cards.forEach(c=>gameEl.appendChild(c));
+}
+startGame();
+</script>
 </body>
 </html>
